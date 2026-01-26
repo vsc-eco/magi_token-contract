@@ -19,6 +19,9 @@ var _ = embed.FS{} // just so "embed" can be imported
 const ContractID = "vsctestcontract"
 const ownerAddress = "hive:tibfox"
 
+// Default init payload for tests
+var DefaultInitPayload = []byte(`{"name":"Magi Token","symbol":"MAGI","decimals":3,"maxSupply":1000000000}`)
+
 //go:embed artifacts/main.wasm
 var ContractWasm []byte
 

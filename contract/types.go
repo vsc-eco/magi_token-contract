@@ -8,6 +8,14 @@ package main
 // Payload Types (Input)
 // ===================================
 
+// InitPayload for init action
+type InitPayload struct {
+	Name      string `json:"name"`
+	Symbol    string `json:"symbol"`
+	Decimals  uint8  `json:"decimals"`
+	MaxSupply uint64 `json:"maxSupply"`
+}
+
 // TransferPayload for transfer action
 type TransferPayload struct {
 	To     string `json:"to"`
@@ -33,8 +41,8 @@ type AllowancePayload struct {
 	Amount  uint64 `json:"amount"`
 }
 
-// GetAllowancePayload for getAllowance query
-type GetAllowancePayload struct {
+// AllowanceQueryPayload for getAllowance query
+type AllowanceQueryPayload struct {
 	Owner   string `json:"owner"`
 	Spender string `json:"spender"`
 }
@@ -113,31 +121,11 @@ type InitEvent struct {
 }
 
 type InitAttributes struct {
-	Owner string `json:"owner"`
-}
-
-// MintEvent for minting tokens
-type MintEvent struct {
-	Type       string         `json:"type"`
-	Attributes MintAttributes `json:"attributes"`
-	Tx         string         `json:"tx"`
-}
-
-type MintAttributes struct {
-	To     string `json:"to"`
-	Amount uint64 `json:"amount"`
-}
-
-// BurnEvent for burning tokens
-type BurnEvent struct {
-	Type       string         `json:"type"`
-	Attributes BurnAttributes `json:"attributes"`
-	Tx         string         `json:"tx"`
-}
-
-type BurnAttributes struct {
-	From   string `json:"from"`
-	Amount uint64 `json:"amount"`
+	Owner     string `json:"owner"`
+	Name      string `json:"name"`
+	Symbol    string `json:"symbol"`
+	Decimals  int    `json:"decimals"`
+	MaxSupply uint64 `json:"maxSupply"`
 }
 
 // TransferEvent for token transfers
@@ -174,7 +162,8 @@ type OwnerChangeEvent struct {
 }
 
 type OwnerChangeAttributes struct {
-	NewOwner string `json:"newOwner"`
+	PreviousOwner string `json:"previousOwner"`
+	NewOwner      string `json:"newOwner"`
 }
 
 // PausedEvent for pause action

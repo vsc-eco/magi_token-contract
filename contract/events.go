@@ -14,44 +14,18 @@ import (
 // Init Event
 // ==============
 
-func emitInit(owner string) {
+func emitInit(owner, name, symbol string, decimals int, maxSupply uint64) {
 	txID := sdk.GetEnvKey("tx.id")
 	event := InitEvent{
-		Type:       "init",
-		Attributes: InitAttributes{Owner: owner},
-		Tx:         *txID,
-	}
-	w := jwriter.Writer{}
-	event.MarshalTinyJSON(&w)
-	sdk.Log(string(w.Buffer.BuildBytes()))
-}
-
-// ==============
-// Mint Event
-// ==============
-
-func emitMint(to string, amount uint64) {
-	txID := sdk.GetEnvKey("tx.id")
-	event := MintEvent{
-		Type:       "mint",
-		Attributes: MintAttributes{To: to, Amount: amount},
-		Tx:         *txID,
-	}
-	w := jwriter.Writer{}
-	event.MarshalTinyJSON(&w)
-	sdk.Log(string(w.Buffer.BuildBytes()))
-}
-
-// ==============
-// Burn Event
-// ==============
-
-func emitBurn(from string, amount uint64) {
-	txID := sdk.GetEnvKey("tx.id")
-	event := BurnEvent{
-		Type:       "burn",
-		Attributes: BurnAttributes{From: from, Amount: amount},
-		Tx:         *txID,
+		Type: "init_magi_token",
+		Attributes: InitAttributes{
+			Owner:     owner,
+			Name:      name,
+			Symbol:    symbol,
+			Decimals:  decimals,
+			MaxSupply: maxSupply,
+		},
+		Tx: *txID,
 	}
 	w := jwriter.Writer{}
 	event.MarshalTinyJSON(&w)
@@ -94,11 +68,11 @@ func emitApproval(owner string, spender string, amount uint64) {
 // Owner Change Event
 // ======================
 
-func emitOwnerChange(newOwner string) {
+func emitOwnerChange(previousOwner, newOwner string) {
 	txID := sdk.GetEnvKey("tx.id")
 	event := OwnerChangeEvent{
 		Type:       "ownerChange",
-		Attributes: OwnerChangeAttributes{NewOwner: newOwner},
+		Attributes: OwnerChangeAttributes{PreviousOwner: previousOwner, NewOwner: newOwner},
 		Tx:         *txID,
 	}
 	w := jwriter.Writer{}

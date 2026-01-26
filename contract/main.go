@@ -3,16 +3,8 @@ package main
 import "magi_token/sdk"
 
 // ========================================
-// MAGI Token Contract - Constants & Config
+// MAGI Token Contract
 // ========================================
-
-const (
-	MaxSupply = 1000000000       // 1 billion max supply
-	Precision = 3                // decimal precision
-	Symbol    = "MAGI"           // token symbol
-	Name      = "Magi Token"     // token name
-	Creator   = "hive:vaultec"   // creator address who can initialize
-)
 
 func main() {
 	// placeholder function

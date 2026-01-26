@@ -16,6 +16,73 @@ var (
 )
 
 // ===================================
+// InitPayload
+// ===================================
+
+func (v *InitPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "name":
+			v.Name = string(in.String())
+		case "symbol":
+			v.Symbol = string(in.String())
+		case "decimals":
+			v.Decimals = uint8(in.Uint8())
+		case "maxSupply":
+			v.MaxSupply = uint64(in.Uint64())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+
+func (v InitPayload) MarshalTinyJSON(out *jwriter.Writer) {
+	out.RawByte('{')
+	out.RawString(`"name":`)
+	out.String(v.Name)
+	out.RawString(`,"symbol":`)
+	out.String(v.Symbol)
+	out.RawString(`,"decimals":`)
+	out.Uint8(v.Decimals)
+	out.RawString(`,"maxSupply":`)
+	out.Uint64(v.MaxSupply)
+	out.RawByte('}')
+}
+
+func (v InitPayload) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	v.MarshalTinyJSON(&w)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+func (v *InitPayload) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	v.UnmarshalTinyJSON(&r)
+	return r.Error()
+}
+
+// ===================================
 // TransferPayload
 // ===================================
 
@@ -256,10 +323,10 @@ func (v *AllowancePayload) UnmarshalJSON(data []byte) error {
 }
 
 // ===================================
-// GetAllowancePayload
+// AllowanceQueryPayload
 // ===================================
 
-func (v *GetAllowancePayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
+func (v *AllowanceQueryPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -293,7 +360,7 @@ func (v *GetAllowancePayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
 	}
 }
 
-func (v GetAllowancePayload) MarshalTinyJSON(out *jwriter.Writer) {
+func (v AllowanceQueryPayload) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawByte('{')
 	out.RawString(`"owner":`)
 	out.String(v.Owner)
@@ -302,13 +369,13 @@ func (v GetAllowancePayload) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawByte('}')
 }
 
-func (v GetAllowancePayload) MarshalJSON() ([]byte, error) {
+func (v AllowanceQueryPayload) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
 	v.MarshalTinyJSON(&w)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
-func (v *GetAllowancePayload) UnmarshalJSON(data []byte) error {
+func (v *AllowanceQueryPayload) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
 	v.UnmarshalTinyJSON(&r)
 	return r.Error()
@@ -669,62 +736,14 @@ func (v InitAttributes) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawByte('{')
 	out.RawString(`"owner":`)
 	out.String(v.Owner)
-	out.RawByte('}')
-}
-
-// MintEvent
-func (v MintEvent) MarshalTinyJSON(out *jwriter.Writer) {
-	out.RawByte('{')
-	out.RawString(`"type":`)
-	out.String(v.Type)
-	out.RawString(`,"attributes":`)
-	v.Attributes.MarshalTinyJSON(out)
-	out.RawString(`,"tx":`)
-	out.String(v.Tx)
-	out.RawByte('}')
-}
-
-func (v MintEvent) MarshalJSON() ([]byte, error) {
-	w := jwriter.Writer{}
-	v.MarshalTinyJSON(&w)
-	return w.Buffer.BuildBytes(), w.Error
-}
-
-// MintAttributes
-func (v MintAttributes) MarshalTinyJSON(out *jwriter.Writer) {
-	out.RawByte('{')
-	out.RawString(`"to":`)
-	out.String(v.To)
-	out.RawString(`,"amount":`)
-	out.Uint64(v.Amount)
-	out.RawByte('}')
-}
-
-// BurnEvent
-func (v BurnEvent) MarshalTinyJSON(out *jwriter.Writer) {
-	out.RawByte('{')
-	out.RawString(`"type":`)
-	out.String(v.Type)
-	out.RawString(`,"attributes":`)
-	v.Attributes.MarshalTinyJSON(out)
-	out.RawString(`,"tx":`)
-	out.String(v.Tx)
-	out.RawByte('}')
-}
-
-func (v BurnEvent) MarshalJSON() ([]byte, error) {
-	w := jwriter.Writer{}
-	v.MarshalTinyJSON(&w)
-	return w.Buffer.BuildBytes(), w.Error
-}
-
-// BurnAttributes
-func (v BurnAttributes) MarshalTinyJSON(out *jwriter.Writer) {
-	out.RawByte('{')
-	out.RawString(`"from":`)
-	out.String(v.From)
-	out.RawString(`,"amount":`)
-	out.Uint64(v.Amount)
+	out.RawString(`,"name":`)
+	out.String(v.Name)
+	out.RawString(`,"symbol":`)
+	out.String(v.Symbol)
+	out.RawString(`,"decimals":`)
+	out.Int(v.Decimals)
+	out.RawString(`,"maxSupply":`)
+	out.Uint64(v.MaxSupply)
 	out.RawByte('}')
 }
 
@@ -809,7 +828,9 @@ func (v OwnerChangeEvent) MarshalJSON() ([]byte, error) {
 // OwnerChangeAttributes
 func (v OwnerChangeAttributes) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawByte('{')
-	out.RawString(`"newOwner":`)
+	out.RawString(`"previousOwner":`)
+	out.String(v.PreviousOwner)
+	out.RawString(`,"newOwner":`)
 	out.String(v.NewOwner)
 	out.RawByte('}')
 }

@@ -5,152 +5,76 @@ import (
 	"strconv"
 
 	"github.com/CosmWasm/tinyjson/jlexer"
-	"github.com/CosmWasm/tinyjson/jwriter"
 )
 
 // ===================================
-// MAGI Token - Core Token Functions
+// MAGI Token - Exported WASM Functions
 // ===================================
 
 // ===================================
-// Safe Math Utilities
-// ===================================
-
-// safeAdd performs a + b addition. Aborts execution if an overflow is detected.
-func safeAdd(a, b uint64) uint64 {
-	sum := a + b
-	if sum < a {
-		sdk.Abort("safeAdd overflow")
-	}
-	return sum
-}
-
-// safeSub performs a - b subtraction. Aborts execution if an underflow is detected.
-func safeSub(a, b uint64) uint64 {
-	if b > a {
-		sdk.Abort("safeSub underflow")
-	}
-	return a - b
-}
-
-// ===================================
-// Balance Management
-// ===================================
-
-// balanceKey returns the state key for an account's balance.
-func balanceKey(account string) string {
-	return "bal_" + account
-}
-
-// incBalance increments token balance of an address.
-func incBalance(account string, amount uint64) {
-	oldBal := getBalanceInternal(account)
-	newBal := safeAdd(oldBal, amount)
-	sdk.StateSetObject(balanceKey(account), strconv.FormatUint(newBal, 10))
-}
-
-// decBalance decrements token balance of an address. Aborts if insufficient balance.
-func decBalance(account string, amount uint64) {
-	oldBal := getBalanceInternal(account)
-	if oldBal < amount {
-		sdk.Abort("Insufficient balance")
-	}
-	newBal := safeSub(oldBal, amount)
-	sdk.StateSetObject(balanceKey(account), strconv.FormatUint(newBal, 10))
-}
-
-// getBalanceInternal retrieves token balance of an address (internal use).
-func getBalanceInternal(account string) uint64 {
-	bal := sdk.StateGetObject(balanceKey(account))
-	if bal == nil {
-		return 0
-	}
-	amt, _ := strconv.ParseUint(*bal, 10, 64)
-	return amt
-}
-
-// ===================================
-// Allowance Management
-// ===================================
-
-// allowanceKey returns the state key for an allowance (owner approves spender).
-func allowanceKey(owner, spender string) string {
-	return "alw_" + owner + "_" + spender
-}
-
-// getAllowanceInternal retrieves the allowance for a spender on owner's tokens.
-func getAllowanceInternal(owner, spender string) uint64 {
-	alw := sdk.StateGetObject(allowanceKey(owner, spender))
-	if alw == nil {
-		return 0
-	}
-	amt, _ := strconv.ParseUint(*alw, 10, 64)
-	return amt
-}
-
-// setAllowanceInternal sets the allowance for a spender on owner's tokens.
-func setAllowanceInternal(owner, spender string, amount uint64) {
-	sdk.StateSetObject(allowanceKey(owner, spender), strconv.FormatUint(amount, 10))
-}
-
-// ===================================
-// Supply Management
-// ===================================
-
-// getSupply retrieves the current total supply.
-func getSupply() uint64 {
-	s := sdk.StateGetObject("supply")
-	if s == nil {
-		return 0
-	}
-	if *s == "" {
-		return 0
-	}
-	supply, _ := strconv.ParseUint(*s, 10, 64)
-	return supply
-}
-
-// setSupply sets the total supply.
-func setSupply(amount uint64) {
-	sdk.StateSetObject("supply", strconv.FormatUint(amount, 10))
-}
-
-// ===================================
-// JSON Response Helper
-// ===================================
-
-func jsonResponse(marshaler interface{ MarshalTinyJSON(*jwriter.Writer) }) *string {
-	w := jwriter.Writer{}
-	marshaler.MarshalTinyJSON(&w)
-	result := string(w.Buffer.BuildBytes())
-	return &result
-}
-
-// ===================================
-// Public Contract Entry Points (WASM)
+// Initialization
 // ===================================
 
 // Init initializes the token contract.
-// Can only be called once by the Creator.
+// Can only be called once by the contract owner (deployment account).
+// Payload: {"name": "Token Name", "symbol": "TKN", "decimals": 3, "maxSupply": 1000000000}
 //
 //go:wasmexport init
-func Init(_ *string) *string {
+func Init(payload *string) *string {
 	if isInit() {
 		sdk.Abort("Already initialized")
 	}
+
+	// Only contract owner can initialize
+	env := sdk.GetEnv()
 	caller := sdk.GetEnvKey("msg.sender")
 	if caller == nil {
-		sdk.Abort("Caller must be creator to initialize")
+		sdk.Abort("Caller required")
 	}
-	if *caller != Creator {
-		sdk.Abort("Caller must be creator to initialize")
+	if *caller != env.ContractOwner {
+		sdk.Abort("Only contract owner can initialize")
 	}
+
+	// Parse payload
+	if payload == nil || *payload == "" {
+		sdk.Abort("Payload required")
+	}
+	var p InitPayload
+	r := jlexer.Lexer{Data: []byte(*payload)}
+	p.UnmarshalTinyJSON(&r)
+	if r.Error() != nil {
+		sdk.Abort("Invalid payload")
+	}
+
+	// Validate payload
+	if p.Name == "" {
+		sdk.Abort("Name required")
+	}
+	if p.Symbol == "" {
+		sdk.Abort("Symbol required")
+	}
+	if p.MaxSupply == 0 {
+		sdk.Abort("MaxSupply must be greater than 0")
+	}
+
+	// Store token properties
+	sdk.StateSetObject("token_name", p.Name)
+	sdk.StateSetObject("token_symbol", p.Symbol)
+	sdk.StateSetObject("token_decimals", strconv.FormatUint(uint64(p.Decimals), 10))
+	sdk.StateSetObject("token_max_supply", strconv.FormatUint(p.MaxSupply, 10))
+
+	// Initialize contract state
 	sdk.StateSetObject("isInit", "1")
 	sdk.StateSetObject("supply", "0")
-	sdk.StateSetObject("owner", Creator)
-	emitInit(Creator)
+	sdk.StateSetObject("owner", env.ContractOwner)
+
+	emitInit(env.ContractOwner, p.Name, p.Symbol, int(p.Decimals), p.MaxSupply)
 	return jsonResponse(SuccessResponse{Success: true})
 }
+
+// ===================================
+// Token Supply Actions
+// ===================================
 
 // Mint creates new tokens and assigns them to the owner.
 // Payload: {"amount": 1000}
@@ -180,12 +104,12 @@ func Mint(payload *string) *string {
 	}
 	supply := getSupply()
 	newSupply := safeAdd(supply, p.Amount)
-	if newSupply > MaxSupply {
+	if newSupply > getMaxSupply() {
 		sdk.Abort("Exceeded max supply")
 	}
 	setSupply(newSupply)
 	incBalance(owner, p.Amount)
-	emitMint(owner, p.Amount)
+	emitTransfer("", owner, p.Amount) // ERC-20: mint is transfer from zero address
 	return jsonResponse(SuccessResponse{Success: true})
 }
 
@@ -218,9 +142,13 @@ func Burn(payload *string) *string {
 	supply := getSupply()
 	newSupply := safeSub(supply, p.Amount)
 	setSupply(newSupply)
-	emitBurn(*caller, p.Amount)
+	emitTransfer(*caller, "", p.Amount) // ERC-20: burn is transfer to zero address
 	return jsonResponse(SuccessResponse{Success: true})
 }
+
+// ===================================
+// Token Transfer Actions
+// ===================================
 
 // Transfer moves tokens from caller to recipient.
 // Payload: {"to": "hive:recipient", "amount": 100}
@@ -260,42 +188,6 @@ func Transfer(payload *string) *string {
 	decBalance(from, p.Amount)
 	incBalance(p.To, p.Amount)
 	emitTransfer(from, p.To, p.Amount)
-	return jsonResponse(SuccessResponse{Success: true})
-}
-
-// Approve sets the allowance for a spender to spend caller's tokens.
-// Payload: {"spender": "hive:spender", "amount": 100}
-//
-//go:wasmexport approve
-func Approve(payload *string) *string {
-	assertInit()
-	if payload == nil || *payload == "" {
-		sdk.Abort("Payload required")
-	}
-
-	var p ApprovePayload
-	r := jlexer.Lexer{Data: []byte(*payload)}
-	p.UnmarshalTinyJSON(&r)
-	if r.Error() != nil {
-		sdk.Abort("Invalid payload")
-	}
-
-	if p.Spender == "" {
-		sdk.Abort("Spender required")
-	}
-
-	caller := sdk.GetEnvKey("msg.sender")
-	if caller == nil {
-		sdk.Abort("Caller required")
-	}
-	owner := *caller
-
-	if owner == p.Spender {
-		sdk.Abort("Cannot approve self")
-	}
-
-	setAllowanceInternal(owner, p.Spender, p.Amount)
-	emitApproval(owner, p.Spender, p.Amount)
 	return jsonResponse(SuccessResponse{Success: true})
 }
 
@@ -343,7 +235,9 @@ func TransferFrom(payload *string) *string {
 	if allowance < p.Amount {
 		sdk.Abort("Insufficient allowance")
 	}
-	setAllowanceInternal(p.From, spender, safeSub(allowance, p.Amount))
+	newAllowance := safeSub(allowance, p.Amount)
+	setAllowanceInternal(p.From, spender, newAllowance)
+	emitApproval(p.From, spender, newAllowance)
 
 	// Transfer tokens
 	decBalance(p.From, p.Amount)
@@ -352,7 +246,48 @@ func TransferFrom(payload *string) *string {
 	return jsonResponse(SuccessResponse{Success: true})
 }
 
+// ===================================
+// Allowance Actions
+// ===================================
+
+// Approve sets the allowance for a spender to spend caller's tokens.
+// Payload: {"spender": "hive:spender", "amount": 100}
+//
+//go:wasmexport approve
+func Approve(payload *string) *string {
+	assertInit()
+	if payload == nil || *payload == "" {
+		sdk.Abort("Payload required")
+	}
+
+	var p ApprovePayload
+	r := jlexer.Lexer{Data: []byte(*payload)}
+	p.UnmarshalTinyJSON(&r)
+	if r.Error() != nil {
+		sdk.Abort("Invalid payload")
+	}
+
+	if p.Spender == "" {
+		sdk.Abort("Spender required")
+	}
+
+	caller := sdk.GetEnvKey("msg.sender")
+	if caller == nil {
+		sdk.Abort("Caller required")
+	}
+	owner := *caller
+
+	if owner == p.Spender {
+		sdk.Abort("Cannot approve self")
+	}
+
+	setAllowanceInternal(owner, p.Spender, p.Amount)
+	emitApproval(owner, p.Spender, p.Amount)
+	return jsonResponse(SuccessResponse{Success: true})
+}
+
 // IncreaseAllowance atomically increases the allowance for a spender.
+// This is to prevent race conditions.
 // Payload: {"spender": "hive:spender", "amount": 100}
 //
 //go:wasmexport increaseAllowance
@@ -391,6 +326,7 @@ func IncreaseAllowance(payload *string) *string {
 }
 
 // DecreaseAllowance atomically decreases the allowance for a spender.
+// This is to prevent race conditions.
 // Payload: {"spender": "hive:spender", "amount": 100}
 //
 //go:wasmexport decreaseAllowance
@@ -431,13 +367,17 @@ func DecreaseAllowance(payload *string) *string {
 	return jsonResponse(SuccessResponse{Success: true})
 }
 
+// ===================================
+// Contract Management Actions
+// ===================================
+
 // ChangeOwner transfers contract ownership to a new address.
 // Payload: {"newOwner": "hive:newowner"}
 //
 //go:wasmexport changeOwner
 func ChangeOwner(payload *string) *string {
 	assertInit()
-	_, isOwner := getOwner()
+	previousOwner, isOwner := getOwner()
 	if !isOwner {
 		sdk.Abort("Not owner")
 	}
@@ -457,7 +397,7 @@ func ChangeOwner(payload *string) *string {
 	}
 
 	sdk.StateSetObject("owner", p.NewOwner)
-	emitOwnerChange(p.NewOwner)
+	emitOwnerChange(previousOwner, p.NewOwner)
 	return jsonResponse(SuccessResponse{Success: true})
 }
 
@@ -496,7 +436,7 @@ func Unpause(_ *string) *string {
 }
 
 // ===================================
-// Read-Only Getters (WASM)
+// Read-Only Queries
 // ===================================
 
 // BalanceOf returns the token balance of an address.
@@ -533,7 +473,7 @@ func TotalSupply(_ *string) *string {
 	return jsonResponse(SupplyResponse{TotalSupply: supply})
 }
 
-// GetOwner returns the current contract owner.
+// GetOwnerExport returns the current contract owner.
 //
 //go:wasmexport getOwner
 func GetOwnerExport(_ *string) *string {
@@ -552,7 +492,7 @@ func Allowance(payload *string) *string {
 		sdk.Abort("Payload required")
 	}
 
-	var p GetAllowancePayload
+	var p AllowanceQueryPayload
 	r := jlexer.Lexer{Data: []byte(*payload)}
 	p.UnmarshalTinyJSON(&r)
 	if r.Error() != nil {
@@ -574,11 +514,12 @@ func Allowance(payload *string) *string {
 //
 //go:wasmexport getInfo
 func GetInfo(_ *string) *string {
+	assertInit()
 	return jsonResponse(InfoResponse{
-		Name:      Name,
-		Symbol:    Symbol,
-		Decimals:  Precision,
-		MaxSupply: MaxSupply,
+		Name:      getTokenName(),
+		Symbol:    getTokenSymbol(),
+		Decimals:  int(getTokenDecimals()),
+		MaxSupply: getMaxSupply(),
 	})
 }
 
