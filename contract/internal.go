@@ -38,7 +38,7 @@ func safeSub(a, b uint64) uint64 {
 
 // balanceKey returns the state key for an account's balance.
 func balanceKey(account string) string {
-	return "bal_" + account
+	return "bal|" + account
 }
 
 // incBalance increments token balance of an address.
@@ -74,7 +74,7 @@ func getBalanceInternal(account string) uint64 {
 
 // allowanceKey returns the state key for an allowance (owner approves spender).
 func allowanceKey(owner, spender string) string {
-	return "alw_" + owner + "_" + spender
+	return "alw|" + owner + "|" + spender
 }
 
 // getAllowanceInternal retrieves the allowance for a spender on owner's tokens.

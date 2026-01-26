@@ -3,7 +3,7 @@ package main
 import "magi_token/sdk"
 
 // ========================================
-// MAGI Token Contract
+// MAGI Token Contract (ERC-20 Based)
 // ========================================
 
 func main() {
