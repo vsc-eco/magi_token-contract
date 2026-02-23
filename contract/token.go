@@ -26,12 +26,12 @@ func Init(payload *string) *string {
 	}
 
 	// Only contract owner can initialize
-	env := sdk.GetEnv()
+	owner := sdk.GetEnvKey("contract.owner")
 	caller := sdk.GetEnvKey("msg.sender")
 	if caller == nil {
 		sdk.Abort("Caller required")
 	}
-	if *caller != env.ContractOwner {
+	if *caller != *owner {
 		sdk.Abort("Only contract owner can initialize")
 	}
 
@@ -66,9 +66,9 @@ func Init(payload *string) *string {
 	// Initialize contract state
 	sdk.StateSetObject("isInit", "1")
 	sdk.StateSetObject("supply", "0")
-	sdk.StateSetObject("owner", env.ContractOwner)
+	sdk.StateSetObject("owner", *owner)
 
-	emitInit(env.ContractOwner, p.Name, p.Symbol, int(p.Decimals), p.MaxSupply)
+	emitInit(*owner, p.Name, p.Symbol, int(p.Decimals), p.MaxSupply)
 	return jsonResponse(SuccessResponse{Success: true})
 }
 
