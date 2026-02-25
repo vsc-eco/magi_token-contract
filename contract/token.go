@@ -27,7 +27,7 @@ func Init(payload *string) *string {
 
 	// Only contract owner can initialize
 	owner := sdk.GetEnvKey("contract.owner")
-	caller := sdk.GetEnvKey("msg.sender")
+	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
 		sdk.Abort("Caller required")
 	}
@@ -134,7 +134,7 @@ func Burn(payload *string) *string {
 	if p.Amount == 0 {
 		sdk.Abort("Amount must be greater than 0")
 	}
-	caller := sdk.GetEnvKey("msg.sender")
+	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
 		sdk.Abort("Caller required")
 	}
@@ -175,7 +175,7 @@ func Transfer(payload *string) *string {
 		sdk.Abort("Amount must be greater than 0")
 	}
 
-	caller := sdk.GetEnvKey("msg.sender")
+	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
 		sdk.Abort("Caller required")
 	}
@@ -220,7 +220,7 @@ func TransferFrom(payload *string) *string {
 		sdk.Abort("Amount must be greater than 0")
 	}
 
-	caller := sdk.GetEnvKey("msg.sender")
+	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
 		sdk.Abort("Caller required")
 	}
@@ -271,7 +271,7 @@ func Approve(payload *string) *string {
 		sdk.Abort("Spender required")
 	}
 
-	caller := sdk.GetEnvKey("msg.sender")
+	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
 		sdk.Abort("Caller required")
 	}
@@ -308,7 +308,7 @@ func IncreaseAllowance(payload *string) *string {
 		sdk.Abort("Spender required")
 	}
 
-	caller := sdk.GetEnvKey("msg.sender")
+	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
 		sdk.Abort("Caller required")
 	}
@@ -347,7 +347,7 @@ func DecreaseAllowance(payload *string) *string {
 		sdk.Abort("Spender required")
 	}
 
-	caller := sdk.GetEnvKey("msg.sender")
+	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
 		sdk.Abort("Caller required")
 	}
