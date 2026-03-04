@@ -720,8 +720,6 @@ func (v InitEvent) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.Type)
 	out.RawString(`,"attributes":`)
 	v.Attributes.MarshalTinyJSON(out)
-	out.RawString(`,"tx":`)
-	out.String(v.Tx)
 	out.RawByte('}')
 }
 
@@ -754,8 +752,6 @@ func (v TransferEvent) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.Type)
 	out.RawString(`,"attributes":`)
 	v.Attributes.MarshalTinyJSON(out)
-	out.RawString(`,"tx":`)
-	out.String(v.Tx)
 	out.RawByte('}')
 }
 
@@ -784,8 +780,6 @@ func (v ApprovalEvent) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.Type)
 	out.RawString(`,"attributes":`)
 	v.Attributes.MarshalTinyJSON(out)
-	out.RawString(`,"tx":`)
-	out.String(v.Tx)
 	out.RawByte('}')
 }
 
@@ -814,8 +808,6 @@ func (v OwnerChangeEvent) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.Type)
 	out.RawString(`,"attributes":`)
 	v.Attributes.MarshalTinyJSON(out)
-	out.RawString(`,"tx":`)
-	out.String(v.Tx)
 	out.RawByte('}')
 }
 
@@ -842,8 +834,6 @@ func (v PausedEvent) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.Type)
 	out.RawString(`,"attributes":`)
 	v.Attributes.MarshalTinyJSON(out)
-	out.RawString(`,"tx":`)
-	out.String(v.Tx)
 	out.RawByte('}')
 }
 
@@ -868,8 +858,6 @@ func (v UnpausedEvent) MarshalTinyJSON(out *jwriter.Writer) {
 	out.String(v.Type)
 	out.RawString(`,"attributes":`)
 	v.Attributes.MarshalTinyJSON(out)
-	out.RawString(`,"tx":`)
-	out.String(v.Tx)
 	out.RawByte('}')
 }
 

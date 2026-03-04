@@ -117,7 +117,6 @@ type SuccessResponse struct {
 type InitEvent struct {
 	Type       string         `json:"type"`
 	Attributes InitAttributes `json:"attributes"`
-	Tx         string         `json:"tx"`
 }
 
 type InitAttributes struct {
@@ -132,7 +131,6 @@ type InitAttributes struct {
 type TransferEvent struct {
 	Type       string             `json:"type"`
 	Attributes TransferAttributes `json:"attributes"`
-	Tx         string             `json:"tx"`
 }
 
 type TransferAttributes struct {
@@ -145,7 +143,6 @@ type TransferAttributes struct {
 type ApprovalEvent struct {
 	Type       string             `json:"type"`
 	Attributes ApprovalAttributes `json:"attributes"`
-	Tx         string             `json:"tx"`
 }
 
 type ApprovalAttributes struct {
@@ -158,7 +155,6 @@ type ApprovalAttributes struct {
 type OwnerChangeEvent struct {
 	Type       string                `json:"type"`
 	Attributes OwnerChangeAttributes `json:"attributes"`
-	Tx         string                `json:"tx"`
 }
 
 type OwnerChangeAttributes struct {
@@ -170,7 +166,6 @@ type OwnerChangeAttributes struct {
 type PausedEvent struct {
 	Type       string           `json:"type"`
 	Attributes PausedAttributes `json:"attributes"`
-	Tx         string           `json:"tx"`
 }
 
 type PausedAttributes struct {
@@ -181,7 +176,6 @@ type PausedAttributes struct {
 type UnpausedEvent struct {
 	Type       string             `json:"type"`
 	Attributes UnpausedAttributes `json:"attributes"`
-	Tx         string             `json:"tx"`
 }
 
 type UnpausedAttributes struct {

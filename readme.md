@@ -62,7 +62,7 @@ Example init payload:
 
 ## Events
 
-All events include `type`, `attributes`, and `tx` (transaction ID).
+All events include `type` and `attributes`.
 
 | Event Type         | Attributes                                    |
 |--------------------|-----------------------------------------------|

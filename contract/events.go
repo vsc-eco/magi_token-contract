@@ -15,7 +15,6 @@ import (
 // ==============
 
 func emitInit(owner, name, symbol string, decimals int, maxSupply uint64) {
-	txID := sdk.GetEnvKey("tx.id")
 	event := InitEvent{
 		Type: "init_magi_token",
 		Attributes: InitAttributes{
@@ -25,7 +24,6 @@ func emitInit(owner, name, symbol string, decimals int, maxSupply uint64) {
 			Decimals:  decimals,
 			MaxSupply: maxSupply,
 		},
-		Tx: *txID,
 	}
 	w := jwriter.Writer{}
 	event.MarshalTinyJSON(&w)
@@ -37,11 +35,9 @@ func emitInit(owner, name, symbol string, decimals int, maxSupply uint64) {
 // ==================
 
 func emitTransfer(from string, to string, amount uint64) {
-	txID := sdk.GetEnvKey("tx.id")
 	event := TransferEvent{
 		Type:       "transfer",
 		Attributes: TransferAttributes{From: from, To: to, Amount: amount},
-		Tx:         *txID,
 	}
 	w := jwriter.Writer{}
 	event.MarshalTinyJSON(&w)
@@ -53,11 +49,9 @@ func emitTransfer(from string, to string, amount uint64) {
 // ======================
 
 func emitApproval(owner string, spender string, amount uint64) {
-	txID := sdk.GetEnvKey("tx.id")
 	event := ApprovalEvent{
 		Type:       "approval",
 		Attributes: ApprovalAttributes{Owner: owner, Spender: spender, Amount: amount},
-		Tx:         *txID,
 	}
 	w := jwriter.Writer{}
 	event.MarshalTinyJSON(&w)
@@ -69,11 +63,9 @@ func emitApproval(owner string, spender string, amount uint64) {
 // ======================
 
 func emitOwnerChange(previousOwner, newOwner string) {
-	txID := sdk.GetEnvKey("tx.id")
 	event := OwnerChangeEvent{
 		Type:       "ownerChange",
 		Attributes: OwnerChangeAttributes{PreviousOwner: previousOwner, NewOwner: newOwner},
-		Tx:         *txID,
 	}
 	w := jwriter.Writer{}
 	event.MarshalTinyJSON(&w)
@@ -85,11 +77,9 @@ func emitOwnerChange(previousOwner, newOwner string) {
 // ======================
 
 func emitPaused(by string) {
-	txID := sdk.GetEnvKey("tx.id")
 	event := PausedEvent{
 		Type:       "paused",
 		Attributes: PausedAttributes{By: by},
-		Tx:         *txID,
 	}
 	w := jwriter.Writer{}
 	event.MarshalTinyJSON(&w)
@@ -97,11 +87,9 @@ func emitPaused(by string) {
 }
 
 func emitUnpaused(by string) {
-	txID := sdk.GetEnvKey("tx.id")
 	event := UnpausedEvent{
 		Type:       "unpaused",
 		Attributes: UnpausedAttributes{By: by},
-		Tx:         *txID,
 	}
 	w := jwriter.Writer{}
 	event.MarshalTinyJSON(&w)
