@@ -121,7 +121,7 @@ func PrintLogs(logs map[string]contract_session.LogOutput) {
 // PrintErrorIfFailed prints error if the contract call failed
 func PrintErrorIfFailed(result test_utils.ContractTestCallResult) {
 	if !result.Success {
-		fmt.Println(result.Err)
+		fmt.Println(result.Err, result.ErrMsg)
 	}
 }
 

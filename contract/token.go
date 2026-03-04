@@ -2,7 +2,6 @@ package main
 
 import (
 	"magi_token/sdk"
-	"strconv"
 
 	"github.com/CosmWasm/tinyjson/jlexer"
 )
@@ -60,12 +59,12 @@ func Init(payload *string) *string {
 	// Store token properties
 	sdk.StateSetObject("token_name", p.Name)
 	sdk.StateSetObject("token_symbol", p.Symbol)
-	sdk.StateSetObject("token_decimals", strconv.FormatUint(uint64(p.Decimals), 10))
-	sdk.StateSetObject("token_max_supply", strconv.FormatUint(p.MaxSupply, 10))
+	sdk.StateSetObject("token_decimals", string(p.Decimals))
+	sdk.StateSetObject("token_max_supply", string(u64ToBytes(p.MaxSupply)))
 
 	// Initialize contract state
 	sdk.StateSetObject("isInit", "1")
-	sdk.StateSetObject("supply", "0")
+	sdk.StateSetObject("supply", string(u64ToBytes(0)))
 	sdk.StateSetObject("owner", *owner)
 
 	emitInit(*owner, p.Name, p.Symbol, int(p.Decimals), p.MaxSupply)

@@ -1,8 +1,8 @@
 package main
 
 import (
+	"encoding/binary"
 	"magi_token/sdk"
-	"strconv"
 
 	"github.com/CosmWasm/tinyjson/jwriter"
 )
@@ -45,7 +45,7 @@ func balanceKey(account string) string {
 func incBalance(account string, amount uint64) {
 	oldBal := getBalanceInternal(account)
 	newBal := safeAdd(oldBal, amount)
-	sdk.StateSetObject(balanceKey(account), strconv.FormatUint(newBal, 10))
+	sdk.StateSetObject(balanceKey(account), string(u64ToBytes(newBal)))
 }
 
 // decBalance decrements token balance of an address. Aborts if insufficient balance.
@@ -55,16 +55,16 @@ func decBalance(account string, amount uint64) {
 		sdk.Abort("Insufficient balance")
 	}
 	newBal := safeSub(oldBal, amount)
-	sdk.StateSetObject(balanceKey(account), strconv.FormatUint(newBal, 10))
+	sdk.StateSetObject(balanceKey(account), string(u64ToBytes(newBal)))
 }
 
 // getBalanceInternal retrieves token balance of an address.
 func getBalanceInternal(account string) uint64 {
 	bal := sdk.StateGetObject(balanceKey(account))
-	if bal == nil {
+	if bal == nil || *bal == "" {
 		return 0
 	}
-	amt, _ := strconv.ParseUint(*bal, 10, 64)
+	amt := bytesToU64([]byte(*bal))
 	return amt
 }
 
@@ -80,16 +80,16 @@ func allowanceKey(owner, spender string) string {
 // getAllowanceInternal retrieves the allowance for a spender on owner's tokens.
 func getAllowanceInternal(owner, spender string) uint64 {
 	alw := sdk.StateGetObject(allowanceKey(owner, spender))
-	if alw == nil {
+	if alw == nil || *alw == "" {
 		return 0
 	}
-	amt, _ := strconv.ParseUint(*alw, 10, 64)
+	amt := bytesToU64([]byte(*alw))
 	return amt
 }
 
 // setAllowanceInternal sets the allowance for a spender on owner's tokens.
 func setAllowanceInternal(owner, spender string, amount uint64) {
-	sdk.StateSetObject(allowanceKey(owner, spender), strconv.FormatUint(amount, 10))
+	sdk.StateSetObject(allowanceKey(owner, spender), string(u64ToBytes(amount)))
 }
 
 // ===================================
@@ -117,21 +117,19 @@ func getTokenSymbol() string {
 // getTokenDecimals retrieves the token decimals from state.
 func getTokenDecimals() uint8 {
 	d := sdk.StateGetObject("token_decimals")
-	if d == nil {
+	if d == nil || *d == "" {
 		return 0
 	}
-	decimals, _ := strconv.ParseUint(*d, 10, 8)
-	return uint8(decimals)
+	return (*d)[0]
 }
 
 // getMaxSupply retrieves the max supply from state.
 func getMaxSupply() uint64 {
 	m := sdk.StateGetObject("token_max_supply")
-	if m == nil {
+	if m == nil || *m == "" {
 		return 0
 	}
-	maxSupply, _ := strconv.ParseUint(*m, 10, 64)
-	return maxSupply
+	return bytesToU64([]byte(*m))
 }
 
 // ===================================
@@ -147,13 +145,53 @@ func getSupply() uint64 {
 	if *s == "" {
 		return 0
 	}
-	supply, _ := strconv.ParseUint(*s, 10, 64)
-	return supply
+	return bytesToU64([]byte(*s))
 }
 
 // setSupply sets the total supply.
 func setSupply(amount uint64) {
-	sdk.StateSetObject("supply", strconv.FormatUint(amount, 10))
+	sdk.StateSetObject("supply", string(u64ToBytes(amount)))
+}
+
+// ===================================
+// uint64 <-> []byte Helper
+// ===================================
+
+func u64ToBytes(val uint64) []byte {
+	b := make([]byte, 8)
+	binary.LittleEndian.PutUint64(b, val)
+
+	// In Little Endian, leading zeros (most significant bytes) are at the end of the slice.
+	// We iterate backwards to find the last non-zero byte.
+	lastNonZeroIndex := len(b) - 1
+	for lastNonZeroIndex >= 0 {
+		if b[lastNonZeroIndex] != 0 {
+			break
+		}
+		lastNonZeroIndex--
+	}
+
+	// If the value was 0, ensure we return at least one byte (0x00) instead of an empty slice.
+	if lastNonZeroIndex < 0 {
+		return []byte{0}
+	}
+
+	return b[:lastNonZeroIndex+1]
+}
+
+func bytesToU64(b []byte) uint64 {
+	if len(b) > 8 {
+		sdk.Abort("byte length less than or equal to 8")
+	}
+
+	// Create an 8-byte buffer initialized to zeros.
+	buf := make([]byte, 8)
+
+	// In Little Endian, the existing bytes are the least significant and go at the start.
+	// Copy the input slice into the beginning of the buffer.
+	copy(buf, b)
+
+	return binary.LittleEndian.Uint64(buf)
 }
 
 // ===================================
