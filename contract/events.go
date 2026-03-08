@@ -2,6 +2,7 @@ package main
 
 import (
 	"magi_token/sdk"
+	"math/big"
 
 	"github.com/CosmWasm/tinyjson/jwriter"
 )
@@ -14,7 +15,7 @@ import (
 // Init Event
 // ==============
 
-func emitInit(owner, name, symbol string, decimals int, maxSupply uint64) {
+func emitInit(owner, name, symbol string, decimals int, maxSupply *big.Int) {
 	event := InitEvent{
 		Type: "init_magi_token",
 		Attributes: InitAttributes{
@@ -34,7 +35,7 @@ func emitInit(owner, name, symbol string, decimals int, maxSupply uint64) {
 // Transfer Event
 // ==================
 
-func emitTransfer(from string, to string, amount uint64) {
+func emitTransfer(from string, to string, amount *big.Int) {
 	event := TransferEvent{
 		Type:       "transfer",
 		Attributes: TransferAttributes{From: from, To: to, Amount: amount},
@@ -48,7 +49,7 @@ func emitTransfer(from string, to string, amount uint64) {
 // Approval Event
 // ======================
 
-func emitApproval(owner string, spender string, amount uint64) {
+func emitApproval(owner string, spender string, amount *big.Int) {
 	event := ApprovalEvent{
 		Type:       "approval",
 		Attributes: ApprovalAttributes{Owner: owner, Spender: spender, Amount: amount},

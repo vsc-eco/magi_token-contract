@@ -2,6 +2,7 @@ package main
 
 import (
 	"magi_token/sdk"
+	"math/big"
 
 	"github.com/CosmWasm/tinyjson/jlexer"
 )
@@ -16,7 +17,7 @@ import (
 
 // Init initializes the token contract.
 // Can only be called once by the contract owner (deployment account).
-// Payload: {"name": "Token Name", "symbol": "TKN", "decimals": 3, "maxSupply": 1000000000}
+// Payload: {"name": "Token Name", "symbol": "TKN", "decimals": 3, "maxSupply": "1000000000"}
 //
 //go:wasmexport init
 func Init(payload *string) *string {
@@ -52,7 +53,7 @@ func Init(payload *string) *string {
 	if p.Symbol == "" {
 		sdk.Abort("Symbol required")
 	}
-	if p.MaxSupply == 0 {
+	if p.MaxSupply == nil || p.MaxSupply.Sign() == 0 {
 		sdk.Abort("MaxSupply must be greater than 0")
 	}
 
@@ -60,11 +61,11 @@ func Init(payload *string) *string {
 	sdk.StateSetObject("token_name", p.Name)
 	sdk.StateSetObject("token_symbol", p.Symbol)
 	sdk.StateSetObject("token_decimals", string(p.Decimals))
-	sdk.StateSetObject("token_max_supply", string(u64ToBytes(p.MaxSupply)))
+	sdk.StateSetObject("token_max_supply", string(bigIntToBytes(p.MaxSupply)))
 
 	// Initialize contract state
 	sdk.StateSetObject("isInit", "1")
-	sdk.StateSetObject("supply", string(u64ToBytes(0)))
+	sdk.StateSetObject("supply", string(bigIntToBytes(new(big.Int))))
 	sdk.StateSetObject("owner", *owner)
 
 	emitInit(*owner, p.Name, p.Symbol, int(p.Decimals), p.MaxSupply)
@@ -76,7 +77,7 @@ func Init(payload *string) *string {
 // ===================================
 
 // Mint creates new tokens and assigns them to the owner.
-// Payload: {"amount": 1000}
+// Payload: {"amount": "1000"}
 // Only the owner can mint tokens.
 //
 //go:wasmexport mint
@@ -98,12 +99,12 @@ func Mint(payload *string) *string {
 		sdk.Abort("Invalid payload")
 	}
 
-	if p.Amount == 0 {
+	if p.Amount == nil || p.Amount.Sign() == 0 {
 		sdk.Abort("Amount must be greater than 0")
 	}
 	supply := getSupply()
 	newSupply := safeAdd(supply, p.Amount)
-	if newSupply > getMaxSupply() {
+	if newSupply.Cmp(getMaxSupply()) > 0 {
 		sdk.Abort("Exceeded max supply")
 	}
 	setSupply(newSupply)
@@ -113,7 +114,7 @@ func Mint(payload *string) *string {
 }
 
 // Burn destroys tokens from the caller's balance.
-// Payload: {"amount": 500}
+// Payload: {"amount": "500"}
 //
 //go:wasmexport burn
 func Burn(payload *string) *string {
@@ -130,7 +131,7 @@ func Burn(payload *string) *string {
 		sdk.Abort("Invalid payload")
 	}
 
-	if p.Amount == 0 {
+	if p.Amount == nil || p.Amount.Sign() == 0 {
 		sdk.Abort("Amount must be greater than 0")
 	}
 	caller := sdk.GetEnvKey("msg.caller")
@@ -150,7 +151,7 @@ func Burn(payload *string) *string {
 // ===================================
 
 // Transfer moves tokens from caller to recipient.
-// Payload: {"to": "hive:recipient", "amount": 100}
+// Payload: {"to": "hive:recipient", "amount": "100"}
 //
 //go:wasmexport transfer
 func Transfer(payload *string) *string {
@@ -170,7 +171,7 @@ func Transfer(payload *string) *string {
 	if p.To == "" {
 		sdk.Abort("Recipient required")
 	}
-	if p.Amount == 0 {
+	if p.Amount == nil || p.Amount.Sign() == 0 {
 		sdk.Abort("Amount must be greater than 0")
 	}
 
@@ -191,7 +192,7 @@ func Transfer(payload *string) *string {
 }
 
 // TransferFrom moves tokens from one address to another using allowance.
-// Payload: {"from": "hive:owner", "to": "hive:recipient", "amount": 100}
+// Payload: {"from": "hive:owner", "to": "hive:recipient", "amount": "100"}
 // Caller must have sufficient allowance from 'from' address.
 //
 //go:wasmexport transferFrom
@@ -215,7 +216,7 @@ func TransferFrom(payload *string) *string {
 	if p.To == "" {
 		sdk.Abort("To address required")
 	}
-	if p.Amount == 0 {
+	if p.Amount == nil || p.Amount.Sign() == 0 {
 		sdk.Abort("Amount must be greater than 0")
 	}
 
@@ -231,7 +232,7 @@ func TransferFrom(payload *string) *string {
 
 	// Check and deduct allowance
 	allowance := getAllowanceInternal(p.From, spender)
-	if allowance < p.Amount {
+	if allowance.Cmp(p.Amount) < 0 {
 		sdk.Abort("Insufficient allowance")
 	}
 	newAllowance := safeSub(allowance, p.Amount)
@@ -250,7 +251,7 @@ func TransferFrom(payload *string) *string {
 // ===================================
 
 // Approve sets the allowance for a spender to spend caller's tokens.
-// Payload: {"spender": "hive:spender", "amount": 100}
+// Payload: {"spender": "hive:spender", "amount": "100"}
 //
 //go:wasmexport approve
 func Approve(payload *string) *string {
@@ -280,6 +281,10 @@ func Approve(payload *string) *string {
 		sdk.Abort("Cannot approve self")
 	}
 
+	if p.Amount == nil {
+		p.Amount = new(big.Int)
+	}
+
 	setAllowanceInternal(owner, p.Spender, p.Amount)
 	emitApproval(owner, p.Spender, p.Amount)
 	return jsonResponse(SuccessResponse{Success: true})
@@ -287,7 +292,7 @@ func Approve(payload *string) *string {
 
 // IncreaseAllowance atomically increases the allowance for a spender.
 // This is to prevent race conditions.
-// Payload: {"spender": "hive:spender", "amount": 100}
+// Payload: {"spender": "hive:spender", "amount": "100"}
 //
 //go:wasmexport increaseAllowance
 func IncreaseAllowance(payload *string) *string {
@@ -317,6 +322,10 @@ func IncreaseAllowance(payload *string) *string {
 		sdk.Abort("Cannot approve self")
 	}
 
+	if p.Amount == nil {
+		p.Amount = new(big.Int)
+	}
+
 	currentAllowance := getAllowanceInternal(owner, p.Spender)
 	newAllowance := safeAdd(currentAllowance, p.Amount)
 	setAllowanceInternal(owner, p.Spender, newAllowance)
@@ -326,7 +335,7 @@ func IncreaseAllowance(payload *string) *string {
 
 // DecreaseAllowance atomically decreases the allowance for a spender.
 // This is to prevent race conditions.
-// Payload: {"spender": "hive:spender", "amount": 100}
+// Payload: {"spender": "hive:spender", "amount": "100"}
 //
 //go:wasmexport decreaseAllowance
 func DecreaseAllowance(payload *string) *string {
@@ -356,8 +365,12 @@ func DecreaseAllowance(payload *string) *string {
 		sdk.Abort("Cannot approve self")
 	}
 
+	if p.Amount == nil {
+		p.Amount = new(big.Int)
+	}
+
 	currentAllowance := getAllowanceInternal(owner, p.Spender)
-	if currentAllowance < p.Amount {
+	if currentAllowance.Cmp(p.Amount) < 0 {
 		sdk.Abort("Decreased allowance below zero")
 	}
 	newAllowance := safeSub(currentAllowance, p.Amount)

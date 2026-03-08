@@ -15,12 +15,16 @@ Token properties are configured at initialization via the `init` payload:
 | name       | string | Token name (e.g., "Magi Token")      |
 | symbol     | string | Token symbol (e.g., "MAGI")          |
 | decimals   | uint8  | Decimal places (e.g., 3)             |
-| maxSupply  | uint64 | Maximum mintable supply              |
+| maxSupply  | string | Maximum mintable supply (big integer as string) |
 
 Example init payload:
 ```json
-{"name": "Magi Token", "symbol": "MAGI", "decimals": 3, "maxSupply": 1000000000}
+{"name": "Magi Token", "symbol": "MAGI", "decimals": 3, "maxSupply": "1000000000"}
 ```
+
+## Amount Encoding
+
+All amount fields (balances, supply, allowances) are encoded as **decimal strings** in JSON to support arbitrary precision and avoid floating-point precision loss. Internally, the contract uses Go's `math/big.Int` for arithmetic.
 
 ## Features
 
@@ -37,14 +41,14 @@ Example init payload:
 
 | Function            | Payload                                      | Access    |
 |---------------------|----------------------------------------------|-----------|
-| `init`              | `{"name": string, "symbol": string, "decimals": uint8, "maxSupply": uint64}` | ContractOwner |
-| `mint`              | `{"amount": uint64}`                         | Owner     |
-| `burn`              | `{"amount": uint64}`                         | Any       |
-| `transfer`          | `{"to": string, "amount": uint64}`           | Any       |
-| `transferFrom`      | `{"from": string, "to": string, "amount": uint64}` | Any |
-| `approve`           | `{"spender": string, "amount": uint64}`      | Any       |
-| `increaseAllowance` | `{"spender": string, "amount": uint64}`      | Any       |
-| `decreaseAllowance` | `{"spender": string, "amount": uint64}`      | Any       |
+| `init`              | `{"name": string, "symbol": string, "decimals": uint8, "maxSupply": string}` | ContractOwner |
+| `mint`              | `{"amount": string}`                         | Owner     |
+| `burn`              | `{"amount": string}`                         | Any       |
+| `transfer`          | `{"to": string, "amount": string}`           | Any       |
+| `transferFrom`      | `{"from": string, "to": string, "amount": string}` | Any |
+| `approve`           | `{"spender": string, "amount": string}`      | Any       |
+| `increaseAllowance` | `{"spender": string, "amount": string}`      | Any       |
+| `decreaseAllowance` | `{"spender": string, "amount": string}`      | Any       |
 | `pause`             | -                                            | Owner     |
 | `unpause`           | -                                            | Owner     |
 | `changeOwner`       | `{"newOwner": string}`                       | Owner     |
@@ -53,11 +57,11 @@ Example init payload:
 
 | Function      | Payload                                | Response                     |
 |---------------|----------------------------------------|------------------------------|
-| `balanceOf`   | `{"account": string}`                  | `{"balance": uint64}`        |
-| `totalSupply` | -                                      | `{"totalSupply": uint64}`    |
-| `allowance`   | `{"owner": string, "spender": string}` | `{"allowance": uint64}`      |
+| `balanceOf`   | `{"account": string}`                  | `{"balance": string}`        |
+| `totalSupply` | -                                      | `{"totalSupply": string}`    |
+| `allowance`   | `{"owner": string, "spender": string}` | `{"allowance": string}`      |
 | `getOwner`    | -                                      | `{"owner": string}`          |
-| `getInfo`     | -                                      | `{"name", "symbol", "decimals", "maxSupply"}` |
+| `getInfo`     | -                                      | `{"name", "symbol", "decimals", "maxSupply": string}` |
 | `isPaused`    | -                                      | `{"paused": bool}`           |
 
 ## Events
@@ -101,7 +105,7 @@ The user must first approve the DEX contract to spend their tokens:
 // User calls approve
 {
   "action": "approve",
-  "payload": {"spender": "hive:dex_contract", "amount": 5000000}
+  "payload": {"spender": "hive:dex_contract", "amount": "5000000"}
 }
 ```
 
@@ -113,7 +117,7 @@ When a trade occurs, the DEX transfers tokens from the user:
 // DEX contract calls transferFrom
 {
   "action": "transferFrom",
-  "payload": {"from": "hive:user", "to": "hive:buyer", "amount": 1000000}
+  "payload": {"from": "hive:user", "to": "hive:buyer", "amount": "1000000"}
 }
 ```
 
@@ -130,13 +134,13 @@ To prevent race conditions (front-running attacks), use `increaseAllowance` and 
 
 ```json
 // Increase existing allowance by 1000
-{"action": "increaseAllowance", "payload": {"spender": "hive:dex", "amount": 1000}}
+{"action": "increaseAllowance", "payload": {"spender": "hive:dex", "amount": "1000"}}
 
 // Decrease existing allowance by 500
-{"action": "decreaseAllowance", "payload": {"spender": "hive:dex", "amount": 500}}
+{"action": "decreaseAllowance", "payload": {"spender": "hive:dex", "amount": "500"}}
 
 // Revoke all allowance (set to 0)
-{"action": "approve", "payload": {"spender": "hive:dex", "amount": 0}}
+{"action": "approve", "payload": {"spender": "hive:dex", "amount": "0"}}
 ```
 
 ### Example: Complete DEX Swap Flow
@@ -202,14 +206,14 @@ magi_token/
 | Function           | Avg RC |
 |--------------------|--------|
 | Queries            | 100    |
-| unpause            | 110    |
-| pause              | 122    |
-| burn               | 170    |
-| changeOwner        | 165    |
-| decreaseAllowance  | 191    |
-| approve            | 205    |
-| increaseAllowance  | 196    |
-| transfer           | 252    |
-| mint               | 326    |
-| transferFrom       | 443    |
-| init               | 948    |
+| unpause            | 100    |
+| pause              | 106    |
+| burn               | 146    |
+| decreaseAllowance  | 166    |
+| increaseAllowance  | 166    |
+| approve            | 170    |
+| changeOwner        | 183    |
+| transfer           | 210    |
+| mint               | 231    |
+| transferFrom       | 373    |
+| init               | 821    |
