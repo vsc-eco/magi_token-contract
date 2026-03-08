@@ -1,5 +1,7 @@
 package main
 
+import "math/big"
+
 // ===================================
 // MAGI Token - JSON Types (tinyjson)
 // ===================================
@@ -10,35 +12,35 @@ package main
 
 // InitPayload for init action
 type InitPayload struct {
-	Name      string `json:"name"`
-	Symbol    string `json:"symbol"`
-	Decimals  uint8  `json:"decimals"`
-	MaxSupply uint64 `json:"maxSupply"`
+	Name      string   `json:"name"`
+	Symbol    string   `json:"symbol"`
+	Decimals  uint8    `json:"decimals"`
+	MaxSupply *big.Int `json:"-"`
 }
 
 // TransferPayload for transfer action
 type TransferPayload struct {
-	To     string `json:"to"`
-	Amount uint64 `json:"amount"`
+	To     string   `json:"to"`
+	Amount *big.Int `json:"-"`
 }
 
 // TransferFromPayload for transferFrom action
 type TransferFromPayload struct {
-	From   string `json:"from"`
-	To     string `json:"to"`
-	Amount uint64 `json:"amount"`
+	From   string   `json:"from"`
+	To     string   `json:"to"`
+	Amount *big.Int `json:"-"`
 }
 
 // ApprovePayload for approve action
 type ApprovePayload struct {
-	Spender string `json:"spender"`
-	Amount  uint64 `json:"amount"`
+	Spender string   `json:"spender"`
+	Amount  *big.Int `json:"-"`
 }
 
 // AllowancePayload for increaseAllowance/decreaseAllowance actions
 type AllowancePayload struct {
-	Spender string `json:"spender"`
-	Amount  uint64 `json:"amount"`
+	Spender string   `json:"spender"`
+	Amount  *big.Int `json:"-"`
 }
 
 // AllowanceQueryPayload for getAllowance query
@@ -54,12 +56,12 @@ type BalancePayload struct {
 
 // MintPayload for mint action
 type MintPayload struct {
-	Amount uint64 `json:"amount"`
+	Amount *big.Int `json:"-"`
 }
 
 // BurnPayload for burn action
 type BurnPayload struct {
-	Amount uint64 `json:"amount"`
+	Amount *big.Int `json:"-"`
 }
 
 // ChangeOwnerPayload for changeOwner action
@@ -73,17 +75,17 @@ type ChangeOwnerPayload struct {
 
 // BalanceResponse for balance queries
 type BalanceResponse struct {
-	Balance uint64 `json:"balance"`
+	Balance *big.Int `json:"-"`
 }
 
 // SupplyResponse for supply queries
 type SupplyResponse struct {
-	TotalSupply uint64 `json:"totalSupply"`
+	TotalSupply *big.Int `json:"-"`
 }
 
 // AllowanceResponse for allowance queries
 type AllowanceResponse struct {
-	Allowance uint64 `json:"allowance"`
+	Allowance *big.Int `json:"-"`
 }
 
 // OwnerResponse for owner queries
@@ -93,10 +95,10 @@ type OwnerResponse struct {
 
 // InfoResponse for token info queries
 type InfoResponse struct {
-	Name      string `json:"name"`
-	Symbol    string `json:"symbol"`
-	Decimals  int    `json:"decimals"`
-	MaxSupply uint64 `json:"maxSupply"`
+	Name      string   `json:"name"`
+	Symbol    string   `json:"symbol"`
+	Decimals  int      `json:"decimals"`
+	MaxSupply *big.Int `json:"-"`
 }
 
 // PausedResponse for isPaused queries
@@ -120,11 +122,11 @@ type InitEvent struct {
 }
 
 type InitAttributes struct {
-	Owner     string `json:"owner"`
-	Name      string `json:"name"`
-	Symbol    string `json:"symbol"`
-	Decimals  int    `json:"decimals"`
-	MaxSupply uint64 `json:"maxSupply"`
+	Owner     string   `json:"owner"`
+	Name      string   `json:"name"`
+	Symbol    string   `json:"symbol"`
+	Decimals  int      `json:"decimals"`
+	MaxSupply *big.Int `json:"-"`
 }
 
 // TransferEvent for token transfers
@@ -134,9 +136,9 @@ type TransferEvent struct {
 }
 
 type TransferAttributes struct {
-	From   string `json:"from"`
-	To     string `json:"to"`
-	Amount uint64 `json:"amount"`
+	From   string   `json:"from"`
+	To     string   `json:"to"`
+	Amount *big.Int `json:"-"`
 }
 
 // ApprovalEvent for allowance approvals
@@ -146,9 +148,9 @@ type ApprovalEvent struct {
 }
 
 type ApprovalAttributes struct {
-	Owner   string `json:"owner"`
-	Spender string `json:"spender"`
-	Amount  uint64 `json:"amount"`
+	Owner   string   `json:"owner"`
+	Spender string   `json:"spender"`
+	Amount  *big.Int `json:"-"`
 }
 
 // OwnerChangeEvent for ownership transfers

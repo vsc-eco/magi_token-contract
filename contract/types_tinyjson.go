@@ -3,6 +3,8 @@
 package main
 
 import (
+	"math/big"
+
 	tinyjson "github.com/CosmWasm/tinyjson"
 	jlexer "github.com/CosmWasm/tinyjson/jlexer"
 	jwriter "github.com/CosmWasm/tinyjson/jwriter"
@@ -13,6 +15,7 @@ var (
 	_ *jlexer.Lexer
 	_ *jwriter.Writer
 	_ tinyjson.Marshaler
+	_ *big.Int
 )
 
 // ===================================
@@ -45,7 +48,7 @@ func (v *InitPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
 		case "decimals":
 			v.Decimals = uint8(in.Uint8())
 		case "maxSupply":
-			v.MaxSupply = uint64(in.Uint64())
+			v.MaxSupply = parseBigInt(in.String())
 		default:
 			in.SkipRecursive()
 		}
@@ -66,7 +69,11 @@ func (v InitPayload) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawString(`,"decimals":`)
 	out.Uint8(v.Decimals)
 	out.RawString(`,"maxSupply":`)
-	out.Uint64(v.MaxSupply)
+	if v.MaxSupply != nil {
+		out.String(v.MaxSupply.String())
+	} else {
+		out.String("0")
+	}
 	out.RawByte('}')
 }
 
@@ -108,7 +115,7 @@ func (v *TransferPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
 		case "to":
 			v.To = string(in.String())
 		case "amount":
-			v.Amount = uint64(in.Uint64())
+			v.Amount = parseBigInt(in.String())
 		default:
 			in.SkipRecursive()
 		}
@@ -125,7 +132,11 @@ func (v TransferPayload) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawString(`"to":`)
 	out.String(v.To)
 	out.RawString(`,"amount":`)
-	out.Uint64(v.Amount)
+	if v.Amount != nil {
+		out.String(v.Amount.String())
+	} else {
+		out.String("0")
+	}
 	out.RawByte('}')
 }
 
@@ -169,7 +180,7 @@ func (v *TransferFromPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
 		case "to":
 			v.To = string(in.String())
 		case "amount":
-			v.Amount = uint64(in.Uint64())
+			v.Amount = parseBigInt(in.String())
 		default:
 			in.SkipRecursive()
 		}
@@ -188,7 +199,11 @@ func (v TransferFromPayload) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawString(`,"to":`)
 	out.String(v.To)
 	out.RawString(`,"amount":`)
-	out.Uint64(v.Amount)
+	if v.Amount != nil {
+		out.String(v.Amount.String())
+	} else {
+		out.String("0")
+	}
 	out.RawByte('}')
 }
 
@@ -230,7 +245,7 @@ func (v *ApprovePayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
 		case "spender":
 			v.Spender = string(in.String())
 		case "amount":
-			v.Amount = uint64(in.Uint64())
+			v.Amount = parseBigInt(in.String())
 		default:
 			in.SkipRecursive()
 		}
@@ -247,7 +262,11 @@ func (v ApprovePayload) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawString(`"spender":`)
 	out.String(v.Spender)
 	out.RawString(`,"amount":`)
-	out.Uint64(v.Amount)
+	if v.Amount != nil {
+		out.String(v.Amount.String())
+	} else {
+		out.String("0")
+	}
 	out.RawByte('}')
 }
 
@@ -289,7 +308,7 @@ func (v *AllowancePayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
 		case "spender":
 			v.Spender = string(in.String())
 		case "amount":
-			v.Amount = uint64(in.Uint64())
+			v.Amount = parseBigInt(in.String())
 		default:
 			in.SkipRecursive()
 		}
@@ -306,7 +325,11 @@ func (v AllowancePayload) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawString(`"spender":`)
 	out.String(v.Spender)
 	out.RawString(`,"amount":`)
-	out.Uint64(v.Amount)
+	if v.Amount != nil {
+		out.String(v.Amount.String())
+	} else {
+		out.String("0")
+	}
 	out.RawByte('}')
 }
 
@@ -460,7 +483,7 @@ func (v *MintPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
 		}
 		switch key {
 		case "amount":
-			v.Amount = uint64(in.Uint64())
+			v.Amount = parseBigInt(in.String())
 		default:
 			in.SkipRecursive()
 		}
@@ -475,7 +498,11 @@ func (v *MintPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
 func (v MintPayload) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawByte('{')
 	out.RawString(`"amount":`)
-	out.Uint64(v.Amount)
+	if v.Amount != nil {
+		out.String(v.Amount.String())
+	} else {
+		out.String("0")
+	}
 	out.RawByte('}')
 }
 
@@ -515,7 +542,7 @@ func (v *BurnPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
 		}
 		switch key {
 		case "amount":
-			v.Amount = uint64(in.Uint64())
+			v.Amount = parseBigInt(in.String())
 		default:
 			in.SkipRecursive()
 		}
@@ -530,7 +557,11 @@ func (v *BurnPayload) UnmarshalTinyJSON(in *jlexer.Lexer) {
 func (v BurnPayload) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawByte('{')
 	out.RawString(`"amount":`)
-	out.Uint64(v.Amount)
+	if v.Amount != nil {
+		out.String(v.Amount.String())
+	} else {
+		out.String("0")
+	}
 	out.RawByte('}')
 }
 
@@ -609,7 +640,11 @@ func (v *ChangeOwnerPayload) UnmarshalJSON(data []byte) error {
 func (v BalanceResponse) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawByte('{')
 	out.RawString(`"balance":`)
-	out.Uint64(v.Balance)
+	if v.Balance != nil {
+		out.String(v.Balance.String())
+	} else {
+		out.String("0")
+	}
 	out.RawByte('}')
 }
 
@@ -623,7 +658,11 @@ func (v BalanceResponse) MarshalJSON() ([]byte, error) {
 func (v SupplyResponse) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawByte('{')
 	out.RawString(`"totalSupply":`)
-	out.Uint64(v.TotalSupply)
+	if v.TotalSupply != nil {
+		out.String(v.TotalSupply.String())
+	} else {
+		out.String("0")
+	}
 	out.RawByte('}')
 }
 
@@ -637,7 +676,11 @@ func (v SupplyResponse) MarshalJSON() ([]byte, error) {
 func (v AllowanceResponse) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawByte('{')
 	out.RawString(`"allowance":`)
-	out.Uint64(v.Allowance)
+	if v.Allowance != nil {
+		out.String(v.Allowance.String())
+	} else {
+		out.String("0")
+	}
 	out.RawByte('}')
 }
 
@@ -671,7 +714,11 @@ func (v InfoResponse) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawString(`,"decimals":`)
 	out.Int(v.Decimals)
 	out.RawString(`,"maxSupply":`)
-	out.Uint64(v.MaxSupply)
+	if v.MaxSupply != nil {
+		out.String(v.MaxSupply.String())
+	} else {
+		out.String("0")
+	}
 	out.RawByte('}')
 }
 
@@ -741,7 +788,11 @@ func (v InitAttributes) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawString(`,"decimals":`)
 	out.Int(v.Decimals)
 	out.RawString(`,"maxSupply":`)
-	out.Uint64(v.MaxSupply)
+	if v.MaxSupply != nil {
+		out.String(v.MaxSupply.String())
+	} else {
+		out.String("0")
+	}
 	out.RawByte('}')
 }
 
@@ -769,7 +820,11 @@ func (v TransferAttributes) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawString(`,"to":`)
 	out.String(v.To)
 	out.RawString(`,"amount":`)
-	out.Uint64(v.Amount)
+	if v.Amount != nil {
+		out.String(v.Amount.String())
+	} else {
+		out.String("0")
+	}
 	out.RawByte('}')
 }
 
@@ -797,7 +852,11 @@ func (v ApprovalAttributes) MarshalTinyJSON(out *jwriter.Writer) {
 	out.RawString(`,"spender":`)
 	out.String(v.Spender)
 	out.RawString(`,"amount":`)
-	out.Uint64(v.Amount)
+	if v.Amount != nil {
+		out.String(v.Amount.String())
+	} else {
+		out.String("0")
+	}
 	out.RawByte('}')
 }
 

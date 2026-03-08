@@ -1,8 +1,8 @@
 package main
 
 import (
-	"encoding/binary"
 	"magi_token/sdk"
+	"math/big"
 
 	"github.com/CosmWasm/tinyjson/jwriter"
 )
@@ -15,21 +15,33 @@ import (
 // Safe Math Utilities
 // ===================================
 
-// safeAdd performs a + b addition. Aborts execution if an overflow is detected.
-func safeAdd(a, b uint64) uint64 {
-	sum := a + b
-	if sum < a {
-		sdk.Abort("safeAdd overflow")
-	}
-	return sum
+// safeAdd performs a + b addition with big.Int.
+func safeAdd(a, b *big.Int) *big.Int {
+	return new(big.Int).Add(a, b)
 }
 
-// safeSub performs a - b subtraction. Aborts execution if an underflow is detected.
-func safeSub(a, b uint64) uint64 {
-	if b > a {
+// safeSub performs a - b subtraction. Aborts execution if b > a.
+func safeSub(a, b *big.Int) *big.Int {
+	if b.Cmp(a) > 0 {
 		sdk.Abort("safeSub underflow")
 	}
-	return a - b
+	return new(big.Int).Sub(a, b)
+}
+
+// ===================================
+// big.Int Parsing
+// ===================================
+
+// parseBigInt parses a decimal string into a *big.Int. Aborts on invalid input.
+func parseBigInt(s string) *big.Int {
+	v, ok := new(big.Int).SetString(s, 10)
+	if !ok {
+		sdk.Abort("Invalid amount: not a valid integer")
+	}
+	if v.Sign() < 0 {
+		sdk.Abort("Invalid amount: negative value")
+	}
+	return v
 }
 
 // ===================================
@@ -42,30 +54,29 @@ func balanceKey(account string) string {
 }
 
 // incBalance increments token balance of an address.
-func incBalance(account string, amount uint64) {
+func incBalance(account string, amount *big.Int) {
 	oldBal := getBalanceInternal(account)
 	newBal := safeAdd(oldBal, amount)
-	sdk.StateSetObject(balanceKey(account), string(u64ToBytes(newBal)))
+	sdk.StateSetObject(balanceKey(account), string(bigIntToBytes(newBal)))
 }
 
 // decBalance decrements token balance of an address. Aborts if insufficient balance.
-func decBalance(account string, amount uint64) {
+func decBalance(account string, amount *big.Int) {
 	oldBal := getBalanceInternal(account)
-	if oldBal < amount {
+	if oldBal.Cmp(amount) < 0 {
 		sdk.Abort("Insufficient balance")
 	}
 	newBal := safeSub(oldBal, amount)
-	sdk.StateSetObject(balanceKey(account), string(u64ToBytes(newBal)))
+	sdk.StateSetObject(balanceKey(account), string(bigIntToBytes(newBal)))
 }
 
 // getBalanceInternal retrieves token balance of an address.
-func getBalanceInternal(account string) uint64 {
+func getBalanceInternal(account string) *big.Int {
 	bal := sdk.StateGetObject(balanceKey(account))
 	if bal == nil || *bal == "" {
-		return 0
+		return new(big.Int)
 	}
-	amt := bytesToU64([]byte(*bal))
-	return amt
+	return bytesToBigInt([]byte(*bal))
 }
 
 // ===================================
@@ -78,18 +89,17 @@ func allowanceKey(owner, spender string) string {
 }
 
 // getAllowanceInternal retrieves the allowance for a spender on owner's tokens.
-func getAllowanceInternal(owner, spender string) uint64 {
+func getAllowanceInternal(owner, spender string) *big.Int {
 	alw := sdk.StateGetObject(allowanceKey(owner, spender))
 	if alw == nil || *alw == "" {
-		return 0
+		return new(big.Int)
 	}
-	amt := bytesToU64([]byte(*alw))
-	return amt
+	return bytesToBigInt([]byte(*alw))
 }
 
 // setAllowanceInternal sets the allowance for a spender on owner's tokens.
-func setAllowanceInternal(owner, spender string, amount uint64) {
-	sdk.StateSetObject(allowanceKey(owner, spender), string(u64ToBytes(amount)))
+func setAllowanceInternal(owner, spender string, amount *big.Int) {
+	sdk.StateSetObject(allowanceKey(owner, spender), string(bigIntToBytes(amount)))
 }
 
 // ===================================
@@ -124,12 +134,12 @@ func getTokenDecimals() uint8 {
 }
 
 // getMaxSupply retrieves the max supply from state.
-func getMaxSupply() uint64 {
+func getMaxSupply() *big.Int {
 	m := sdk.StateGetObject("token_max_supply")
 	if m == nil || *m == "" {
-		return 0
+		return new(big.Int)
 	}
-	return bytesToU64([]byte(*m))
+	return bytesToBigInt([]byte(*m))
 }
 
 // ===================================
@@ -137,61 +147,36 @@ func getMaxSupply() uint64 {
 // ===================================
 
 // getSupply retrieves the current total supply.
-func getSupply() uint64 {
+func getSupply() *big.Int {
 	s := sdk.StateGetObject("supply")
-	if s == nil {
-		return 0
+	if s == nil || *s == "" {
+		return new(big.Int)
 	}
-	if *s == "" {
-		return 0
-	}
-	return bytesToU64([]byte(*s))
+	return bytesToBigInt([]byte(*s))
 }
 
 // setSupply sets the total supply.
-func setSupply(amount uint64) {
-	sdk.StateSetObject("supply", string(u64ToBytes(amount)))
+func setSupply(amount *big.Int) {
+	sdk.StateSetObject("supply", string(bigIntToBytes(amount)))
 }
 
 // ===================================
-// uint64 <-> []byte Helper
+// big.Int <-> []byte Helper
 // ===================================
 
-func u64ToBytes(val uint64) []byte {
-	b := make([]byte, 8)
-	binary.LittleEndian.PutUint64(b, val)
-
-	// In Little Endian, leading zeros (most significant bytes) are at the end of the slice.
-	// We iterate backwards to find the last non-zero byte.
-	lastNonZeroIndex := len(b) - 1
-	for lastNonZeroIndex >= 0 {
-		if b[lastNonZeroIndex] != 0 {
-			break
-		}
-		lastNonZeroIndex--
-	}
-
-	// If the value was 0, ensure we return at least one byte (0x00) instead of an empty slice.
-	if lastNonZeroIndex < 0 {
+// bigIntToBytes serializes a *big.Int to bytes (big-endian unsigned).
+// Returns [0] for zero values.
+func bigIntToBytes(val *big.Int) []byte {
+	b := val.Bytes()
+	if len(b) == 0 {
 		return []byte{0}
 	}
-
-	return b[:lastNonZeroIndex+1]
+	return b
 }
 
-func bytesToU64(b []byte) uint64 {
-	if len(b) > 8 {
-		sdk.Abort("byte length less than or equal to 8")
-	}
-
-	// Create an 8-byte buffer initialized to zeros.
-	buf := make([]byte, 8)
-
-	// In Little Endian, the existing bytes are the least significant and go at the start.
-	// Copy the input slice into the beginning of the buffer.
-	copy(buf, b)
-
-	return binary.LittleEndian.Uint64(buf)
+// bytesToBigInt deserializes bytes (big-endian unsigned) to a *big.Int.
+func bytesToBigInt(b []byte) *big.Int {
+	return new(big.Int).SetBytes(b)
 }
 
 // ===================================
