@@ -12,6 +12,30 @@ import (
 // ===================================
 
 // ===================================
+// Input Validation
+// ===================================
+
+// Maximum allowed lengths for user-controlled input fields.
+const (
+	maxAddressLen = 256
+	maxNameLen    = 64
+	maxSymbolLen  = 16
+)
+
+// validateAddress checks that an address is within length bounds and contains
+// no pipe characters, which are used as state key delimiters.
+func validateAddress(account string) {
+	if len(account) > maxAddressLen {
+		sdk.Abort("Address exceeds maximum length")
+	}
+	for i := 0; i < len(account); i++ {
+		if account[i] == '|' {
+			sdk.Abort("Invalid character in address")
+		}
+	}
+}
+
+// ===================================
 // Safe Math Utilities
 // ===================================
 
@@ -186,6 +210,9 @@ func bytesToBigInt(b []byte) *big.Int {
 func jsonResponse(marshaler interface{ MarshalTinyJSON(*jwriter.Writer) }) *string {
 	w := jwriter.Writer{}
 	marshaler.MarshalTinyJSON(&w)
+	if w.Error != nil {
+		sdk.Abort("JSON marshal error")
+	}
 	result := string(w.Buffer.BuildBytes())
 	return &result
 }
