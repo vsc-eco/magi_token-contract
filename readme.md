@@ -10,12 +10,12 @@ MAGI Token is a fungible token implementation with standard ERC-20 functionality
 
 Token properties are configured at initialization via the `init` payload:
 
-| Property   | Type   | Description                          |
-|------------|--------|--------------------------------------|
-| name       | string | Token name (e.g., "Magi Token")      |
-| symbol     | string | Token symbol (e.g., "MAGI")          |
-| decimals   | uint8  | Decimal places (e.g., 3)             |
-| maxSupply  | string | Maximum mintable supply (big integer as string) |
+| Property   | Type   | Description                                          |
+|------------|--------|------------------------------------------------------|
+| name       | string | Token name (e.g., "Magi Token") — max 64 characters  |
+| symbol     | string | Token symbol (e.g., "MAGI") — max 16 characters      |
+| decimals   | uint8  | Decimal places (e.g., 3)                             |
+| maxSupply  | string | Maximum mintable supply (big integer as string)      |
 
 Example init payload:
 ```json
@@ -82,6 +82,20 @@ All events include `type` and `attributes`.
 - **Mint**: Emits `transfer` with `from: ""`
 - **Burn**: Emits `transfer` with `to: ""`
 - **transferFrom**: Emits both `transfer` and `approval` (for updated allowance)
+
+## Input Validation & Security
+
+The contract enforces the following limits on all user-controlled inputs:
+
+| Field     | Constraint                            |
+|-----------|---------------------------------------|
+| `name`    | Max 64 characters                     |
+| `symbol`  | Max 16 characters                     |
+| `account` | Max 256 characters, no `\|` character |
+
+The `\|` character is rejected in addresses because it is used as a delimiter in internal state keys (e.g., `bal|account`, `alw|owner|spender`). Pipe injection could cause state key collisions.
+
+Numeric values (balances, supply, allowances) are stored as raw bytes using Go's `math/big.Int` serialization, eliminating any string parse vulnerabilities.
 
 ## Allowance Pattern (DEX Integration)
 
@@ -194,6 +208,7 @@ magi_token/
 │   ├── basic_test.go      # Core token tests (init, mint, transfer, burn)
 │   ├── allowance_test.go  # Allowance tests (approve, transferFrom)
 │   ├── pausable_test.go   # Pause/unpause tests
+│   ├── bigint_test.go     # Big integer arithmetic & overflow tests
 │   ├── edge_cases_test.go # Edge cases & negative tests
 │   ├── lifecycle_test.go  # Comprehensive lifecycle test
 │   ├── helpers_test.go    # Test utilities

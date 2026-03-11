@@ -50,8 +50,14 @@ func Init(payload *string) *string {
 	if p.Name == "" {
 		sdk.Abort("Name required")
 	}
+	if len(p.Name) > maxNameLen {
+		sdk.Abort("Name exceeds maximum length")
+	}
 	if p.Symbol == "" {
 		sdk.Abort("Symbol required")
+	}
+	if len(p.Symbol) > maxSymbolLen {
+		sdk.Abort("Symbol exceeds maximum length")
 	}
 	if p.MaxSupply == nil || p.MaxSupply.Sign() == 0 {
 		sdk.Abort("MaxSupply must be greater than 0")
@@ -171,6 +177,7 @@ func Transfer(payload *string) *string {
 	if p.To == "" {
 		sdk.Abort("Recipient required")
 	}
+	validateAddress(p.To)
 	if p.Amount == nil || p.Amount.Sign() == 0 {
 		sdk.Abort("Amount must be greater than 0")
 	}
@@ -213,9 +220,11 @@ func TransferFrom(payload *string) *string {
 	if p.From == "" {
 		sdk.Abort("From address required")
 	}
+	validateAddress(p.From)
 	if p.To == "" {
 		sdk.Abort("To address required")
 	}
+	validateAddress(p.To)
 	if p.Amount == nil || p.Amount.Sign() == 0 {
 		sdk.Abort("Amount must be greater than 0")
 	}
@@ -270,6 +279,7 @@ func Approve(payload *string) *string {
 	if p.Spender == "" {
 		sdk.Abort("Spender required")
 	}
+	validateAddress(p.Spender)
 
 	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
@@ -311,6 +321,7 @@ func IncreaseAllowance(payload *string) *string {
 	if p.Spender == "" {
 		sdk.Abort("Spender required")
 	}
+	validateAddress(p.Spender)
 
 	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
@@ -354,6 +365,7 @@ func DecreaseAllowance(payload *string) *string {
 	if p.Spender == "" {
 		sdk.Abort("Spender required")
 	}
+	validateAddress(p.Spender)
 
 	caller := sdk.GetEnvKey("msg.caller")
 	if caller == nil {
@@ -407,6 +419,7 @@ func ChangeOwner(payload *string) *string {
 	if p.NewOwner == "" {
 		sdk.Abort("New owner required")
 	}
+	validateAddress(p.NewOwner)
 
 	sdk.StateSetObject("owner", p.NewOwner)
 	emitOwnerChange(previousOwner, p.NewOwner)
